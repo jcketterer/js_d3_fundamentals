@@ -27,7 +27,10 @@ function buildLine (dataLoad) {
     const minDate = getDate(dataLoad.monthlySales[0].month)
     const maxDate = getDate(dataLoad.monthlySales[dataLoad.monthlySales.length - 1].month)
 
-
+    const toolTip = d3.select('body')
+        .append('div')
+        .attr('class', 'tooltip')
+        .style('opacity', 0)
 
     const xScale = d3.scaleTime()
             .domain([minDate, maxDate])
@@ -68,6 +71,29 @@ function buildLine (dataLoad) {
         .attr('stroke-width',2 )
         .attr('fill', 'none')
         .attr('class',`path-${dataLoad.category }`)
+    
+    const dots = svg.selectAll('circle')
+            .data(dataLoad.monthlySales)
+            .enter()
+            .append('circle')
+            .attr('cx',function (d) { return xScale(getDate(d.month))})
+            .attr('cy',function (d) { return yScale(d.sales)})
+            .attr('r', 4)
+            .attr('fill', '#666666')
+            .attr('class',`circle-${dataLoad.category}` )
+            .on('mouseover', function(e, d) {
+                toolTip.transition()
+                    .duration(500)
+                    .style('opacity', .85)
+                toolTip.html(`<strong>Sales $${d.sales} K  </strong>`)
+                    .style('left', (e.pageX) + 'px')
+                    .style('top', (e.pageY - 28) + 'px')
+            })
+            .on('mouseout', function (e,d) {
+                toolTip.transition()
+                    .duration(300)
+                    .style('opacity',0)
+            })
 }
 
 function updateLine (dataLoad) {
@@ -105,7 +131,18 @@ function updateLine (dataLoad) {
     const xAxis = svg.selectAll('g.x-axis').call(xAxisGen)
 
     const viz = svg.selectAll(`.path-${dataLoad.category}`)
+        .transition()
+        .duration(3000)
+        .ease(d3.easeCircle)
         .attr('d', lineFun(dataLoad.monthlySales))
+    
+    const dots = svg.selectAll(`.circle-${dataLoad.category}`)
+            .transition()
+            .duration(3000)
+            .ease(d3.easeCircle)
+            .attr('cx',function (d) { return xScale(getDate(d.month))})
+            .attr('cy',function (d) { return yScale(d.sales)})
+
 }
 
 // function showTotals (dataLoad) {
