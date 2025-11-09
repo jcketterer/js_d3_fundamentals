@@ -27,8 +27,7 @@ function buildLine (dataLoad) {
     const minDate = getDate(dataLoad.monthlySales[0].month)
     const maxDate = getDate(dataLoad.monthlySales[dataLoad.monthlySales.length - 1].month)
 
-    console.log(minDate)
-    console.log(maxDate)
+
 
     const xScale = d3.scaleTime()
             .domain([minDate, maxDate])
@@ -53,13 +52,14 @@ function buildLine (dataLoad) {
         .append('svg')
         .attr('width', w)
         .attr('height', h)
+        .attr('id',`svg-${dataLoad.category }`)
 
     const yAxis = svg.append('g').call(yAxisGen)
-            .attr('class','axis')
+            .attr('class','y-axis')
             .attr('transform', `translate(${padding},0)`)
     
     const xAxis = svg.append('g').call(xAxisGen)
-        .attr('class','axis')
+        .attr('class','x-axis')
         .attr('transform', `translate(0,${h - padding})`)
 
     const viz = svg.append('path')
@@ -67,6 +67,45 @@ function buildLine (dataLoad) {
         .attr('stroke','purple')
         .attr('stroke-width',2 )
         .attr('fill', 'none')
+        .attr('class',`path-${dataLoad.category }`)
+}
+
+function updateLine (dataLoad) {
+
+    const minDate = getDate(dataLoad.monthlySales[0].month)
+    const maxDate = getDate(dataLoad.monthlySales[dataLoad.monthlySales.length - 1].month)
+
+    const xScale = d3.scaleTime()
+            .domain([minDate, maxDate])
+            .range([padding + 5, w - padding])
+
+    const yScale = d3.scaleLinear()
+            .domain([
+                0, d3.max(dataLoad.monthlySales, function (d) {return d.sales})
+            ])
+            .range([h - padding,10])
+
+    const yAxisGen = d3.axisLeft(yScale)
+
+    const xAxisGen = d3.axisBottom(xScale)
+        .tickFormat(d3.timeFormat('%b'))
+        .ticks(dataLoad.monthlySales.length -1)
+
+
+    const lineFun  = d3.line()
+        .x(function (d) { return xScale(getDate(d.month))})
+        .y(function (d) { return yScale(d.sales)})
+        .curve(d3.curveLinear)
+
+    const svg = d3.select('body')
+        .select(`#svg-${dataLoad.category}`)
+
+    const yAxis = svg.selectAll('g.y-axis').call(yAxisGen)
+    
+    const xAxis = svg.selectAll('g.x-axis').call(xAxisGen)
+
+    const viz = svg.selectAll(`.path-${dataLoad.category}`)
+        .attr('d', lineFun(dataLoad.monthlySales))
 }
 
 // function showTotals (dataLoad) {
@@ -96,16 +135,28 @@ d3.json('https://api.github.com/repos/bsullins/d3js-resources/contents/monthlySa
 
     const decodedData = JSON.parse(window.atob(data.content))
 
-    console.log(decodedData.contents)
 
     decodedData.contents.forEach (function(dataLoad) {
-            console.log(dataLoad)
+
             showHeader(dataLoad);
             buildLine(dataLoad);
             // showTotals(dataLoad);
     }) 
 
+    d3.select('select')
+        .on('change', function (e, d, i) {
+            const sel = e.target.value
 
+            const decodedData = JSON.parse(window.atob(data.content))
+
+            decodedData.contents.forEach (function(dataLoad) {
+
+                    dataLoad.monthlySales = dataLoad.monthlySales.slice(- sel)
+
+                    updateLine(dataLoad);
+        })
+
+    }) 
 
 
 }).catch (function (error) {
